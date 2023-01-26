@@ -1,0 +1,10 @@
+version: '3.9'
+services:
+  backend:
+    # Dockerfileの内容を読み込む
+    build: .
+    ports:
+      - 8000:3000
+    # working directory
+    volumes:
+      - .:/app
