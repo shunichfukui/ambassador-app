@@ -37,3 +37,30 @@ func Register(context *fiber.Ctx) error {
 
 	return context.JSON(user)
 }
+
+func Login(context *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := context.BodyParser(&data); err != nil {
+		return err
+	}
+
+	var user models.User
+	database.DB.Where("email = ?", data["email"]).First(&user)
+
+	if user.Id == 0 {
+		context.Status(fiber.StatusBadRequest)
+		return context.JSON(fiber.Map{
+			"message": "ユーザーが見つかりませんでした",
+		})
+	}
+
+	if err := bcrypt.CompareHashAndPassword(user.Password, []byte(data["password"])); err != nil {
+		context.Status(fiber.StatusBadRequest)
+		return context.JSON(fiber.Map{
+			"message": "パスワードが違います。",
+		})
+	}
+
+	return context.JSON(user)
+}
