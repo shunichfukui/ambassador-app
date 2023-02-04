@@ -90,3 +90,25 @@ func Login(context *fiber.Ctx) error {
 		"message": "success",
 	})
 }
+
+func GetUser(context *fiber.Ctx) error {
+	cookie := context.Cookies("jwt")
+	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte("secret"), nil
+	})
+
+	if err != nil || !token.Valid {
+		context.Status(fiber.StatusUnauthorized)
+		return context.JSON(fiber.Map{
+			"message": "認証ができませんでした。",
+		})
+	}
+
+	payload := token.Claims.(*jwt.StandardClaims)
+
+	var user models.User
+
+	database.DB.Where("id = ?", payload.Subject).First(&user)
+
+	return context.JSON(user)
+}
