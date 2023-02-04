@@ -6,6 +6,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/dgrijalva/jwt-go"
+	"strconv"
+	"time"
 )
 
 func Register(context *fiber.Ctx) error {
@@ -62,5 +65,30 @@ func Login(context *fiber.Ctx) error {
 		})
 	}
 
-	return context.JSON(user)
+	var payload := jwt.StandardClaims{
+		Subject: strconv.Itoa(int(user.Id)),
+		ExpiresAt: time.Now().Add(time.Hour * 24).Unix()
+	}
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, payload).SignedString([]byte("secret"))
+
+	if err != nil {
+		context.Status(fiber.StatusBadRequest)
+		return context.JSON(fiber.Map{
+			"message": "Invalid Credentials",
+		})
+	}
+
+	cookie := fiber.Cookie{
+		Name: "jwt",
+		Value: token,
+		Expires: time.Now().Add(time.Hour * 24),
+		HTTPOnly: true,
+	}
+
+	context.Cookie(&cookie)
+
+	return context.JSON(fiber.Map{
+		"message": "success",
+	})
 }

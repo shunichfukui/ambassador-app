@@ -6,6 +6,7 @@ require github.com/gofiber/fiber/v2 v2.41.0
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
