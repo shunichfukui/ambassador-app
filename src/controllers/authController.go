@@ -5,7 +5,6 @@ import (
 	"ambassador/src/models"
 
 	"github.com/gofiber/fiber/v2"
-	"golang.org/x/crypto/bcrypt"
 	"github.com/dgrijalva/jwt-go"
 	"strconv"
 	"time"
@@ -26,15 +25,14 @@ func Register(context *fiber.Ctx) error {
 		})
 	}
 
-	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
-
 	user := models.User{
 		FirstName:    data["first_name"],
 		LastName:     data["last_name"],
 		Email:        data["email"],
-		Password:     password,
 		IsAmbassador: false,
 	}
+
+	password := user.SetUserPassword(data["password"])
 
 	database.DB.Create(&user)
 
@@ -58,7 +56,7 @@ func Login(context *fiber.Ctx) error {
 		})
 	}
 
-	if err := bcrypt.CompareHashAndPassword(user.Password, []byte(data["password"])); err != nil {
+	if err := user.ComparePassword(data["password"]); err != nil {
 		context.Status(fiber.StatusBadRequest)
 		return context.JSON(fiber.Map{
 			"message": "パスワードが違います。",
