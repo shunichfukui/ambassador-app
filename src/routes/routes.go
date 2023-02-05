@@ -12,8 +12,11 @@ func Setup(app *fiber.App) {
 
 	// adminルーティング
 	admin := api.Group("admin")
+
 	admin.Post("register", controllers.Register)
 
 	admin.Post("login", controllers.Login)
+	admin.Post("logout", controllers.Logout)
+
 	admin.Get("user", controllers.GetUser)
 }
