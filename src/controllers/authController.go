@@ -117,3 +117,53 @@ func GetUser(context *fiber.Ctx) error {
 
 	return context.JSON(user)
 }
+
+func UpdateUserInfo(context *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := context.BodyParser(&data); err != nil {
+		return err
+	}
+
+	id, _ := middlewares.GetUser(context)
+
+	user := models.User{
+		Id:           id,
+		FirstName:    data["first_name"],
+		LastName:     data["last_name"],
+		Email:        data["email"],
+		IsAmbassador: false,
+	}
+
+	database.DB.Model(&user).Updates(&user)
+
+	return context.JSON(user)
+}
+
+func UpdateUserPassword(context *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := context.BodyParser(&data); err != nil {
+		return err
+	}
+
+	if data["password"] != data["password_confirm"] {
+		context.Status(400)
+
+		return context.JSON(fiber.Map{
+			"message": "最初に入力したパスワードと確認パスワードの値が正しくありません。",
+		})
+	}
+
+	id, _ := middlewares.GetUser(context)
+
+	user := models.User{
+		Id:           id,
+	}
+
+	user.SetUserPassword(data["password"])
+
+	database.DB.Model(&user).Updates(&user)
+
+	return context.JSON(user)
+}
