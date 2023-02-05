@@ -3,9 +3,10 @@ package controllers
 import (
 	"ambassador/src/database"
 	"ambassador/src/models"
+	"ambassador/src/middlewares"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"strconv"
 	"time"
 )
@@ -108,23 +109,11 @@ func Logout(context *fiber.Ctx) error {
 }
 
 func GetUser(context *fiber.Ctx) error {
-	cookie := context.Cookies("jwt")
-	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte("secret"), nil
-	})
-
-	if err != nil || !token.Valid {
-		context.Status(fiber.StatusUnauthorized)
-		return context.JSON(fiber.Map{
-			"message": "認証ができませんでした。",
-		})
-	}
-
-	payload := token.Claims.(*jwt.StandardClaims)
+	id, _ := middlewares.GetUser(context)
 
 	var user models.User
 
-	database.DB.Where("id = ?", payload.Subject).First(&user)
+	database.DB.Where("id = ?", id).First(&user)
 
 	return context.JSON(user)
 }
