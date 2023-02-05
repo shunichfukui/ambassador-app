@@ -4,6 +4,8 @@ go 1.18
 
 require github.com/gofiber/fiber/v2 v2.41.0
 
+require github.com/bxcodec/faker/v3 v3.8.1 // indirect
+
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
