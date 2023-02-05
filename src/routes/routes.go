@@ -35,4 +35,7 @@ func Setup(app *fiber.App) {
 
 	// link
 	adminAuthenticated.Delete("users/:id/links", controllers.Link)
+
+	// orders
+	adminAuthenticated.Get("orders", controllers.GetOrders)
 }
