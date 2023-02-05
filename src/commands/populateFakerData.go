@@ -67,7 +67,7 @@ func CreateOrders() {
 			LastName:        faker.LastName(),
 			Email:           faker.Email(),
 			Complete:        true,
-			OrderItem:       orderItems,
+			OrderItems:      orderItems,
 		})
 	}
 }
