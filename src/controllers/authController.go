@@ -2,13 +2,15 @@ package controllers
 
 import (
 	"ambassador/src/database"
-	"ambassador/src/models"
 	"ambassador/src/middlewares"
+	"ambassador/src/models"
+	"strings"
+
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt"
-	"strconv"
-	"time"
 )
 
 func Register(context *fiber.Ctx) error {
@@ -30,7 +32,7 @@ func Register(context *fiber.Ctx) error {
 		FirstName:    data["first_name"],
 		LastName:     data["last_name"],
 		Email:        data["email"],
-		IsAmbassador: false,
+		IsAmbassador: strings.Contains(context.Path(), "/api/ambassador"),
 	}
 
 	password := user.SetUserPassword(data["password"])
@@ -131,7 +133,7 @@ func UpdateUserInfo(context *fiber.Ctx) error {
 		FirstName:    data["first_name"],
 		LastName:     data["last_name"],
 		Email:        data["email"],
-		IsAmbassador: false,
+		IsAmbassador: strings.Contains(context.Path(), "/api/ambassador"),
 	}
 
 	user.Id = id
