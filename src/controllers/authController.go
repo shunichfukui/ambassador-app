@@ -6,11 +6,9 @@ import (
 	"ambassador/src/models"
 	"strings"
 
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt"
 )
 
 func Register(context *fiber.Ctx) error {
@@ -35,7 +33,7 @@ func Register(context *fiber.Ctx) error {
 		IsAmbassador: strings.Contains(context.Path(), "/api/ambassador"),
 	}
 
-	password := user.SetUserPassword(data["password"])
+	user.SetUserPassword(data["password"])
 
 	database.DB.Create(&user)
 
@@ -66,12 +64,24 @@ func Login(context *fiber.Ctx) error {
 		})
 	}
 
-	var payload := jwt.StandardClaims{
-		Subject: strconv.Itoa(int(user.Id)),
-		ExpiresAt: time.Now().Add(time.Hour * 24).Unix()
+	isAmbassador := strings.Contains(context.Path(), "/api/ambassador")
+
+	var scope string
+
+	if isAmbassador {
+		scope = "ambassador"
+	} else {
+		scope = "admin"
 	}
 
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, payload).SignedString([]byte("secret"))
+	if !isAmbassador && user.IsAmbassador {
+		context.Status(fiber.StatusUnauthorized)
+		return context.JSON(fiber.Map{
+			"message": "認証に失敗しました。",
+		})
+	}
+
+	token, err := middlewares.GenerateJWT(user.Id, scope)
 
 	if err != nil {
 		context.Status(fiber.StatusBadRequest)
@@ -81,9 +91,9 @@ func Login(context *fiber.Ctx) error {
 	}
 
 	cookie := fiber.Cookie{
-		Name: "jwt",
-		Value: token,
-		Expires: time.Now().Add(time.Hour * 24),
+		Name:     "jwt",
+		Value:    token,
+		Expires:  time.Now().Add(time.Hour * 24),
 		HTTPOnly: true,
 	}
 
@@ -97,9 +107,9 @@ func Login(context *fiber.Ctx) error {
 // remove cookie
 func Logout(context *fiber.Ctx) error {
 	cookie := fiber.Cookie{
-		Name: "jwt",
-		Value: "",
-		Expires: time.Now().Add(-time.Hour),
+		Name:     "jwt",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
 		HTTPOnly: true,
 	}
 
@@ -111,7 +121,7 @@ func Logout(context *fiber.Ctx) error {
 }
 
 func GetUser(context *fiber.Ctx) error {
-	id, _ := middlewares.GetUser(context)
+	id, _ := middlewares.GetUserId(context)
 
 	var user models.User
 
@@ -127,7 +137,7 @@ func UpdateUserInfo(context *fiber.Ctx) error {
 		return err
 	}
 
-	id, _ := middlewares.GetUser(context)
+	id, _ := middlewares.GetUserId(context)
 
 	user := models.User{
 		FirstName:    data["first_name"],
@@ -158,7 +168,7 @@ func UpdateUserPassword(context *fiber.Ctx) error {
 		})
 	}
 
-	id, _ := middlewares.GetUser(context)
+	id, _ := middlewares.GetUserId(context)
 
 	user := models.User{}
 	user.Id = id
