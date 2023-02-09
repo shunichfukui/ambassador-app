@@ -5,6 +5,7 @@ import (
 	"ambassador/src/models"
 	"context"
 	"encoding/json"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -124,6 +125,19 @@ func ProductsBackend(c *fiber.Ctx) error {
 	} else {
 		// 指定の値が含まれるデータが見つからなかった場合は全てのデータを返す
 		searchedProducts = products
+	}
+
+	if sortParam := c.Query("sort"); sortParam != "" {
+		sortLower := strings.ToLower(sortParam)
+		if sortLower == "asc" {
+			sort.Slice(searchedProducts, func(i, j int) bool {
+				return searchedProducts[i].Price < searchedProducts[j].Price
+			})
+		} else if sortLower == "desc" {
+			sort.Slice(searchedProducts, func(i, j int) bool {
+				return searchedProducts[i].Price > searchedProducts[j].Price
+			})
+		}
 	}
 
 	return c.JSON(searchedProducts)
