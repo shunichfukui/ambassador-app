@@ -42,19 +42,28 @@ func GetProduct(context *fiber.Ctx) error {
 	return context.JSON(product)
 }
 
-func UpdateProduct(context *fiber.Ctx) error {
-	id, _ := strconv.Atoi(context.Params("id"))
+func UpdateProduct(c *fiber.Ctx) error {
+	id, _ := strconv.Atoi(c.Params("id"))
 
 	product := models.Product{}
 	product.Id = uint(id)
 
-	if err := context.BodyParser(&product); err != nil {
+	if err := c.BodyParser(&product); err != nil {
 		return err
 	}
 
 	database.DB.Model(&product).Updates(&product)
 
-	return context.JSON(product)
+	go DeleteCache("products_frontend")
+	go DeleteCache("products_backend")
+
+	return c.JSON(product)
+}
+
+func DeleteCache(key string) {
+	time.Sleep(3 * time.Second)
+
+	database.Cache.Del(context.Background(), key)
 }
 
 func DeleteProduct(context *fiber.Ctx) error {
