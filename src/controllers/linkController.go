@@ -56,3 +56,38 @@ func CreateLink(context *fiber.Ctx) error {
 
 	return context.JSON(link)
 }
+
+func Stats(context *fiber.Ctx) error {
+	id, _ := middlewares.GetUserId(context)
+
+	var links []models.Link
+
+	database.DB.Find(&links, models.Link{
+		UserId: id,
+	})
+
+	var result []interface{}
+
+	var orders []models.Order
+
+	for _, link := range links {
+		database.DB.Preload("OrderItems").Find(&orders, &models.Order{
+			Code:     link.Code,
+			Complete: true,
+		})
+
+		revenue := 0.0
+
+		for _, order := range orders {
+			revenue += order.GetTotal()
+		}
+
+		result = append(result, fiber.Map{
+			"code":    link.Code,
+			"count":   len(orders),
+			"revenue": revenue,
+		})
+	}
+
+	return context.JSON(result)
+}
