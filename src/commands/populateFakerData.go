@@ -3,9 +3,11 @@ package main
 import (
 	"ambassador/src/database"
 	"ambassador/src/models"
+	"context"
 	"math/rand"
 
 	"github.com/bxcodec/faker/v3"
+	"github.com/go-redis/redis/v8"
 )
 
 // 初期データの作成
@@ -14,6 +16,7 @@ func main() {
 	CreateUsers()
 	CreateProducts()
 	CreateOrders()
+	CreateRankings()
 }
 
 func CreateUsers() {
@@ -68,6 +71,29 @@ func CreateOrders() {
 			Email:           faker.Email(),
 			Complete:        true,
 			OrderItems:      orderItems,
+		})
+	}
+}
+
+func CreateRankings() {
+	database.SetupRedis()
+
+	ctx := context.Background()
+
+	var users []models.User
+
+	database.DB.Find(&users, models.User{
+		IsAmbassador: true,
+	})
+
+	for _, user := range users {
+		ambassador := models.Ambassador(user)
+		ambassador.CalculateRevenue(database.DB)
+
+		// スコアをつける
+		database.Cache.ZAdd(ctx, "rankings", &redis.Z{
+			Score:  *ambassador.Revenue,
+			Member: user.Name(),
 		})
 	}
 }
