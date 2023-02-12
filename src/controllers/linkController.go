@@ -91,3 +91,24 @@ func Stats(context *fiber.Ctx) error {
 
 	return context.JSON(result)
 }
+
+func Rankings(context *fiber.Ctx) error {
+	var users []models.User
+
+	database.DB.Find(&users, models.User{
+		IsAmbassador: true,
+	})
+
+	var result []interface{}
+
+	for _, user := range users {
+		ambassador := models.Ambassador(user)
+		ambassador.CalculateRevenue(database.DB)
+
+		result = append(result, fiber.Map{
+			user.Name(): ambassador.Revenue,
+		})
+	}
+
+	return context.JSON(result)
+}
