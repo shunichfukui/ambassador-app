@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"ambassador/src/database"
+	"ambassador/src/middlewares"
 	"ambassador/src/models"
 	"strconv"
 
+	"github.com/bxcodec/faker/v3"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -24,4 +26,33 @@ func Link(context *fiber.Ctx) error {
 	}
 
 	return context.JSON(links)
+}
+
+type CreateLinkRequest struct {
+	Products []int
+}
+
+func CreateLink(context *fiber.Ctx) error {
+	var request CreateLinkRequest
+
+	if err := context.BodyParser(&request); err != nil {
+		return err
+	}
+
+	id, _ := middlewares.GetUserId(context)
+
+	link := models.Link{
+		UserId: id,
+		Code:   faker.Username(),
+	}
+
+	for _, productId := range request.Products {
+		product := models.Product{}
+		product.Id = uint(productId)
+		link.Products = append(link.Products, product)
+	}
+
+	database.DB.Create(&link)
+
+	return context.JSON(link)
 }
