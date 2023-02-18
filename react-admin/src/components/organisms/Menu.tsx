@@ -1,6 +1,6 @@
 import React from 'react'
 
-const Menu = () => {
+export const Menu = () => {
   return (
     <nav id="sidebarMenu" className="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
         <div className="position-sticky pt-3 sidebar-sticky">
@@ -16,5 +16,3 @@ const Menu = () => {
     </nav>
   )
 }
-
-export default Menu;
