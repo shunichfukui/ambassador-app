@@ -4,6 +4,8 @@ import (
 	"ambassador/src/database"
 	"ambassador/src/models"
 	"context"
+	"fmt"
+	"net/smtp"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
@@ -189,6 +191,14 @@ func CompleteOrder(ctx *fiber.Ctx) error {
 
 		// ランキング更新
 		database.Cache.ZIncrBy(context.Background(), "rankings", ambassadorRevenue, user.Name())
+
+		ambassadorMessage := []byte(fmt.Sprintf("you earned $%f from the link #%s", ambassadorRevenue, order.Code))
+
+		smtp.SendMail("host.docker.internal:1025", nil, "no-reply@email.com", []string{order.AmbassadorEmail}, ambassadorMessage)
+
+		adminMessage := []byte(fmt.Sprintf("order #%d with a total of $%f", order.Id, adminRevenue))
+
+		smtp.SendMail("host.docker.internal:1025", nil, "no-reply@email.com", []string{"admin@admin.com"}, adminMessage)
 	}(order)
 
 	return ctx.JSON(fiber.Map{
