@@ -3,8 +3,11 @@ package controllers
 import (
 	"ambassador/src/database"
 	"ambassador/src/models"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/checkout/session"
 )
 
 func GetOrders(context *fiber.Ctx) error {
@@ -75,6 +78,8 @@ func CreateOrders(context *fiber.Ctx) error {
 		})
 	}
 
+	var lineItems []*stripe.CheckoutSessionLineItemParams
+
 	for _, requestProduct := range request.Products {
 		product := models.Product{}
 		product.Id = uint(requestProduct["product_id"])
@@ -92,7 +97,7 @@ func CreateOrders(context *fiber.Ctx) error {
 		}
 
 		// transaction
-		if err := tx.Create(&order).Error; err != nil {
+		if err := tx.Create(&orderItem).Error; err != nil {
 			tx.Rollback()
 			context.Status(fiber.StatusBadRequest)
 			return context.JSON(fiber.Map{
@@ -100,10 +105,46 @@ func CreateOrders(context *fiber.Ctx) error {
 			})
 		}
 
-		database.DB.Create(&orderItem)
+		lineItems = append(lineItems, &stripe.CheckoutSessionLineItemParams{
+			Name:        stripe.String(product.Title),
+			Description: stripe.String(product.Description),
+			Images:      []*string{stripe.String(product.Image)},
+			Amount:      stripe.Int64(100 * int64(product.Price)),
+			Currency:    stripe.String("usd"),
+			Quantity:    stripe.Int64(int64(requestProduct["quantity"])),
+		})
+	}
+
+	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+	params := stripe.CheckoutSessionParams{
+		SuccessURL:         stripe.String("http://localhost:500/success?source={CHECKOUT_SESSION_ID}"),
+		CancelURL:          stripe.String("http://localhost:500/error"),
+		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
+		LineItems:          lineItems,
+	}
+
+	source, err := session.New(&params)
+
+	if err != nil {
+		tx.Rollback()
+		context.Status(fiber.StatusBadRequest)
+		return context.JSON(fiber.Map{
+			"message": err.Error(),
+		})
+	}
+
+	order.TransactionId = source.ID
+
+	// transaction
+	if err := tx.Save(&order).Error; err != nil {
+		tx.Rollback()
+		context.Status(fiber.StatusBadRequest)
+		return context.JSON(fiber.Map{
+			"message": err.Error(),
+		})
 	}
 
 	tx.Commit()
 
-	return context.JSON(order)
+	return context.JSON(source)
 }
